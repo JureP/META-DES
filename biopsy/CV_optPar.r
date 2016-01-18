@@ -29,7 +29,7 @@ onsovniPodatki_FM <- osnovniPodatki[, -c(1,11)]
 
 ## razdelitev podatkov 
 
-cvRazdelitev <- createFolds(osnovniPodatki$class, k = 4, list = TRUE, returnTrain = FALSE)
+cvRazdelitev <- createFolds(onsovniPodatki_response, k = 4, list = TRUE, returnTrain = FALSE)
 # vect <- 1:length(names(cvRazdelitev))
 # for(i in 1:length(vect)){
 	# vect <- c(vect[length(vect)], vect[-length(vect)])
