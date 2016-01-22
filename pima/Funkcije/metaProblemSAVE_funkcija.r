@@ -77,7 +77,7 @@ metaProblemSAVE <- function(imenaMnozic = c('trainBL','sosedSet', 'metaSet'), ##
 					## sosedi na output profile
 					kNN_OP <- get.knnx(OP_sosedi, OP_meta,  k=OPnSosedi, algorith = alg)
 					matrika_sosediOP <- kNN_OP$nn.index
-					saveRDS(matrika_sosediRC, imeSosediOP)
+					saveRDS(matrika_sosediOP, imeSosediOP)
 				}else{
 					matrika_sosediOP <- readRDS(imeSosediOP)
 				}
@@ -105,7 +105,6 @@ metaProblemSAVE <- function(imenaMnozic = c('trainBL','sosedSet', 'metaSet'), ##
 							sosediRC <- matrika_sosediRC[i,]
 							## sosedi po output profilu
 							sosediOP <- matrika_sosediOP[i,]
-
 							## napovedi base learnerjev za region of competence (sosediRC)
 								imeBL <- paste0(bl, '_', levels(ySosedSet))
 								## verjetnosti posameznega classa (sosedov iz region of competences)
@@ -147,7 +146,7 @@ metaProblemSAVE <- function(imenaMnozic = c('trainBL','sosedSet', 'metaSet'), ##
 							f4 <- as.numeric(sosedi_classOP == ySosedSet[sosediOP])
 							
 							## f5: razdalja med ...??
-								
+
 							metaFM <- rbind(metaFM, c(f1,f2,f3,f4))	
 							colnames(metaFM) <- c(paste0('f1_', 1:length(f1)), paste0('f2_', 1:length(f2)), paste0('f3_', 1:length(f3)), paste0('f4_', 1:length(f4)))
 						}
@@ -183,5 +182,6 @@ metaProblemSAVE <- function(imenaMnozic = c('trainBL','sosedSet', 'metaSet'), ##
 	## K
 	}
 }
+
 
 
