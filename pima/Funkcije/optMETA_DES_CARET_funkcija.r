@@ -138,8 +138,11 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 	## stevec poteka: izracunal 50% primerov
 	############################
 	
+
+	
 	## model za vsak baseLearner
 	if('individual' %in% MetaMode){
+		print('Ucenje individualnih modelov')
 		############################
 		ucenjeMetaKlasifikator(imenaMnozic[1:3], ## ime mnozice: [sosede katerih iscemo, iz katere so sosedje]
 							OP_meta, ## output profile (verjetnosti) za mnozico metaSet 
@@ -159,6 +162,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 
 	if('one' %in% MetaMode){
 	############################
+	print('Ucenje enega modela')
 	ucenjeMetaKlasifikatorONE(imenaMnozic[1:3], ## ime mnozice: [sosede katerih iscemo, iz katere so sosedje]
 						OP_meta, ## output profile (verjetnosti) za mnozico metaSet 
 								## imena stolpcev: baseLearer1_class(1) baseLearner1_ class(2) ... baseLearner1_class(n) ... baseLearnerK_class(n)
@@ -186,7 +190,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 	## ALI JE SMISELNO SHRANJEVATI metaProbleme (cas loadanja vs cas racunanja) 30/1 sekund
 	## IZRACUN IN SHRANITEV metaFM
 	
-	
+		
 	metaProblemSAVE(imenaMnozicVALID, ## ime mnozice: [sosede katerih iscemo, iz katere so sosedje]
 					metaSet = validSet, ## mnozica iz katere se sestavi meta problem
 					yMetaSet = yValidSet, ## response vektor meta seta
@@ -204,7 +208,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 					OkoljeMetaPrblm = OkoljeMetaPrblm_VALID, ## okolje kamor naj se shranijo matrike meta problemov
 					OkoljeSosedi = paste0(OkoljeMetaPrblm_VALID, '/matrikaSosedi') ## okolje kamor naj se shrani matrike sosedov
 					)
-					
+	
 
 	if('individual' %in% MetaMode){
 		## izracun kompetentnosti klasifikatorja (vsak)
@@ -222,11 +226,13 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 														'[sosedSet]',imenaMnozicVALID[2], '[metaSet]',imenaMnozicVALID[3],
 														'[K]',nSosedi, '[Kp]', OPnSosedi, '[knnALG]', alg, '.rds')
 								metaFM <- readRDS(imeMetaProblem)$metaFM
+
 								## loadanje meta klasifikatorja
 								setwd(OkoljeMetaKlasifikator)
 								imeMetaKlasifikator <- paste0('metaKlasifikator[BL]', bl,'[trainBL]', imenaMnozic[1],'[sosedSet]',
 																	imenaMnozic[2],'[metaSet]', imenaMnozic[3], '[K]',nSosedi, 
 																	'[Kp]',OPnSosedi, '[knnALG]', alg, '[metaALG]', algM, '[cH]', meja, '.rds')
+								
 								metaKlasifikator <- readRDS(imeMetaKlasifikator)
 								## napovedi meta klasifikatorja
 								napoved <- predict(metaKlasifikator, metaFM, type = 'prob')[2]
@@ -248,7 +254,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 			}
 		}
 		
-
+		
 		
 		## napovedi ensembla
 		##############################################
@@ -287,7 +293,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 				}
 			}
 		}
-		
+
 
 		## pravilnost napovedi, shrani v eno matriko (vsi parametri)
 		##############################################
@@ -336,6 +342,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 		saveRDS(rezultati, ime)
 	}
 	
+
 	if('one' %in% MetaMode){
 		## izracun kompetentnosti klasifikatorja (vsak)
 		##############################################
@@ -343,7 +350,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 			for(OPnSosedi in Kp){
 				for(alg in knnALG){
 					for(algM in metaALG){
-						for(meja in hC){
+						for(meja in hC_ONE){
 							kompetentnost <- NULL
 							for(bl in baseLearner){
 								## loadanje metaProblema
@@ -387,7 +394,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 			for(OPnSosedi in Kp){
 				for(alg in knnALG){
 					for(algM in metaALG){
-						for(meja in hC){
+						for(meja in hC_ONE){
 							## loadanje matrik kompetentnosti
 							setwd(OkoljeKompetentnost)
 							imeKompetentnost <- paste0('kompetentnostONE[trainBL]', imenaMnozic[1],'[sosedSet]',
@@ -430,7 +437,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 			for(OPnSosedi in Kp){
 				for(alg in knnALG){
 					for(algM in metaALG){
-						for(meja in hC){
+						for(meja in hC_ONE){
 							for(k in kompetThrsh){
 								setwd(OkoljeNapovedEnsemble)
 								imeNapovedEns <- paste0('napovedEnsONE[trainBL]', imenaMnozic[1],'[sosedSet]',
