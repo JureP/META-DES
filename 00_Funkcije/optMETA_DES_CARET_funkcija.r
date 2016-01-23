@@ -25,6 +25,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 						
 						## dodatni parametri ucenja meta klasifikatorja
 						hC = c(0.95, 1), ## meja razlicnosti napovedi baseLearnerjev za vkljucitev v podatke za meta ucenje
+						hC_ONE = c(0.8,1), ## meja razlicnosti napovedi baseLearnerjev za vkljucitev v podatke za meta ucenje
 						MetaMode = 'individual', ## 'one'
 						metaALG = c('rf', 'gbm'), ## algoriti uproabljeni za ucenje meta problema
 						OkoljeMetaKlasifikator, ## okolje kamor se shranijo meta klasifikatorji
@@ -64,7 +65,6 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 		
 	}
 
-	print('stopnja 1')
 	## NAPOVEDI BASE LEARNERJEV ###############################################
 	###########################################################################						
 
@@ -97,7 +97,7 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 	saveRDS(OP_valid, 'OP_valid_verjetnost.rds')
 	
 	
-	print('stopnja 2')
+	
 	## SESTAVLJANJE META PROBLEMA #############################################
 	###########################################################################
 	## in: SosedSed, MetaSet, OP_SosedSet?, OP_MetaSet,
@@ -129,7 +129,6 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 						)
 	
 
-	print('stopnja 3')
 	## UCENJE META KLASIFIKATORJA #############################################
 	###########################################################################
 	## za razlicne K,Kp, knnALG
@@ -140,9 +139,28 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 	############################
 	
 	
-	start.time <- Sys.time()
+	## model za vsak baseLearner
+	if('individual' %in% MetaMode){
+		############################
+		ucenjeMetaKlasifikator(imenaMnozic[1:3], ## ime mnozice: [sosede katerih iscemo, iz katere so sosedje]
+							OP_meta, ## output profile (verjetnosti) za mnozico metaSet 
+									## imena stolpcev: baseLearer1_class(1) baseLearner1_ class(2) ... baseLearner1_class(n) ... baseLearnerK_class(n)
+							classOsnovni =  levels(ySosedSet), ## imena classov pri osnovnem problemu kot vektor (npr: c('neg', 'pos')
+							baseLearner, ## ime base learnerjev (vektor)
+							K, ## stevilo sosedov za region of competence (vektor)
+							Kp, ## stevilo sosedov iz output profile (vektor)
+							knnALG, ## algoritem po katerem get.knnx isce sosede
+							metaALG, ## klasifikacijski algoritmi uporabljeni pri ucenju meta klasifikatorja
+							hC, ## kako razlicne morajo biti napovedi base learnerjev, za x iz metaSet da ga vkljucimo v ucenje
+							OkoljeMetaPrblm, ## okolje kjer so shranjene metaProblemi 
+							OkoljeMetaKlasifikator ## okolje, kamor se shranijo meta klasifikatorji
+							)
+		############################		
+	}
+
+	if('one' %in% MetaMode){
 	############################
-	ucenjeMetaKlasifikator(imenaMnozic[1:3], ## ime mnozice: [sosede katerih iscemo, iz katere so sosedje]
+	ucenjeMetaKlasifikatorONE(imenaMnozic[1:3], ## ime mnozice: [sosede katerih iscemo, iz katere so sosedje]
 						OP_meta, ## output profile (verjetnosti) za mnozico metaSet 
 								## imena stolpcev: baseLearer1_class(1) baseLearner1_ class(2) ... baseLearner1_class(n) ... baseLearnerK_class(n)
 						classOsnovni =  levels(ySosedSet), ## imena classov pri osnovnem problemu kot vektor (npr: c('neg', 'pos')
@@ -151,19 +169,13 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 						Kp, ## stevilo sosedov iz output profile (vektor)
 						knnALG, ## algoritem po katerem get.knnx isce sosede
 						metaALG, ## klasifikacijski algoritmi uporabljeni pri ucenju meta klasifikatorja
-						hC, ## kako razlicne morajo biti napovedi base learnerjev, za x iz metaSet da ga vkljucimo v ucenje
+						hC_ONE, ## kako razlicne morajo biti napovedi base learnerjev, za x iz metaSet da ga vkljucimo v ucenje
 						OkoljeMetaPrblm, ## okolje kjer so shranjene metaProblemi 
 						OkoljeMetaKlasifikator ## okolje, kamor se shranijo meta klasifikatorji
-						)
-		
+							)
 	############################
-	end.time <- Sys.time()
-	time.taken <- end.time - start.time
-	############################
+	}
 	
-	print('stopnja 4')
-	## se za primer ko uporabis en model za razlicne baseLearnerje
-
 	## IZRACUN MATRIKE KOMPETENTNOSTI #########################################
 	###########################################################################
 	
@@ -194,136 +206,270 @@ optMETA_DES_CARET <- function(## parametri potrebni za ucenje base learnerja
 					OkoljeSosedi = paste0(OkoljeMetaPrblm_VALID, '/matrikaSosedi') ## okolje kamor naj se shrani matrike sosedov
 					)
 					
-	print('stopnja 5')
 
-	## izracun kompetentnosti klasifikatorja (vsak)
-	##############################################
-	for(nSosedi in K){
-		for(OPnSosedi in Kp){
-			for(alg in knnALG){
-				for(algM in metaALG){
-					for(meja in hC){
-						kompetentnost <- NULL
-						for(bl in baseLearner){
-							## loadanje metaProblema
-							setwd(OkoljeMetaPrblm_VALID)
-							imeMetaProblem <- paste0('matrikaProblem[BL]', bl,'[trainBL]', imenaMnozicVALID[1],
-													'[sosedSet]',imenaMnozicVALID[2], '[metaSet]',imenaMnozicVALID[3],
-													'[K]',nSosedi, '[Kp]', OPnSosedi, '[knnALG]', alg, '.rds')
-							metaFM <- readRDS(imeMetaProblem)$metaFM
-							## loadanje meta klasifikatorja
-							setwd(OkoljeMetaKlasifikator)
-							imeMetaKlasifikator <- paste0('metaKlasifikator[BL]', bl,'[trainBL]', imenaMnozic[1],'[sosedSet]',
-																imenaMnozic[2],'[metaSet]', imenaMnozic[3], '[K]',nSosedi, 
-																'[Kp]',OPnSosedi, '[knnALG]', alg, '[metaALG]', algM, '[cH]', meja, '.rds')
-							metaKlasifikator <- readRDS(imeMetaKlasifikator)
-							## napovedi meta klasifikatorja
-							napoved <- predict(metaKlasifikator, metaFM, type = 'prob')[2]
-							kompetentnost <- cbind(kompetentnost, as.matrix(napoved))
-						}
-						kompetentnost <- data.frame(kompetentnost)
-						colnames(kompetentnost) <- baseLearner
-						## shranjevanje matrike kompetentnosti
-						setwd(OkoljeKompetentnost)
-						imeKompetentnost <- paste0('kompetentnost[trainBL]', imenaMnozic[1],'[sosedSet]',
-																imenaMnozic[2], '[metaSet]',imenaMnozic[3],
-																'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
-																'[Kp]',OPnSosedi, '[knnALG]', alg, 
-																'[metaALG]', algM, '[cH]', meja, '.rds')
-						saveRDS(kompetentnost, imeKompetentnost)
-					}				
+	if('individual' %in% MetaMode){
+		## izracun kompetentnosti klasifikatorja (vsak)
+		##############################################
+		for(nSosedi in K){
+			for(OPnSosedi in Kp){
+				for(alg in knnALG){
+					for(algM in metaALG){
+						for(meja in hC){
+							kompetentnost <- NULL
+							for(bl in baseLearner){
+								## loadanje metaProblema
+								setwd(OkoljeMetaPrblm_VALID)
+								imeMetaProblem <- paste0('matrikaProblem[BL]', bl,'[trainBL]', imenaMnozicVALID[1],
+														'[sosedSet]',imenaMnozicVALID[2], '[metaSet]',imenaMnozicVALID[3],
+														'[K]',nSosedi, '[Kp]', OPnSosedi, '[knnALG]', alg, '.rds')
+								metaFM <- readRDS(imeMetaProblem)$metaFM
+								## loadanje meta klasifikatorja
+								setwd(OkoljeMetaKlasifikator)
+								imeMetaKlasifikator <- paste0('metaKlasifikator[BL]', bl,'[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2],'[metaSet]', imenaMnozic[3], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, '[metaALG]', algM, '[cH]', meja, '.rds')
+								metaKlasifikator <- readRDS(imeMetaKlasifikator)
+								## napovedi meta klasifikatorja
+								napoved <- predict(metaKlasifikator, metaFM, type = 'prob')[2]
+								kompetentnost <- cbind(kompetentnost, as.matrix(napoved))
+							}
+							kompetentnost <- data.frame(kompetentnost)
+							colnames(kompetentnost) <- baseLearner
+							## shranjevanje matrike kompetentnosti
+							setwd(OkoljeKompetentnost)
+							imeKompetentnost <- paste0('kompetentnost[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+							saveRDS(kompetentnost, imeKompetentnost)
+						}				
+					}
 				}
 			}
 		}
-	}
-	
+		
+# N <- napoved
+# N[napoved < 0.7] <- 'N'
+# N[napoved >= 0.7] <- 'Y'
+# N <- factor(N[,1])
+# table(N, metaProblem$metaClass)
+# confusionMatrix(table(N, metaProblem$metaClass))		
+		## napovedi ensembla
+		##############################################
 
-	
-	## napovedi ensembla
-	##############################################
-
-	for(nSosedi in K){
-		for(OPnSosedi in Kp){
-			for(alg in knnALG){
-				for(algM in metaALG){
-					for(meja in hC){
-						## loadanje matrik kompetentnosti
-						setwd(OkoljeKompetentnost)
-						imeKompetentnost <- paste0('kompetentnost[trainBL]', imenaMnozic[1],'[sosedSet]',
-																imenaMnozic[2], '[metaSet]',imenaMnozic[3],
-																'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
-																'[Kp]',OPnSosedi, '[knnALG]', alg, 
-																'[metaALG]', algM, '[cH]', meja, '.rds')
-						kompetentnost <- readRDS(imeKompetentnost)
-						## sestavljanje napovedi ensembla
-						imena <- paste0(baseLearner, '_', levels(ySosedSet_VALID)[1])
-						napovedBL <- OP_valid[, imena]
-						for(k in kompetThrsh){
-							ensembleNapoved <- napovedEnsemble(napovedBL,
-																kompetentnost,
-																k,
-																bup = 4)
-							setwd(OkoljeNapovedEnsemble)
-							imeNapovedEns <- paste0('napovedEns[trainBL]', imenaMnozic[1],'[sosedSet]',
-																imenaMnozic[2], '[metaSet]',imenaMnozic[3],
-																'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
-																'[Kp]',OPnSosedi, '[knnALG]', alg, 
-																'[metaALG]', algM, '[cH]', meja, '.rds')
-							saveRDS(ensembleNapoved,imeNapovedEns)
-						}
-					}				
+		for(nSosedi in K){
+			for(OPnSosedi in Kp){
+				for(alg in knnALG){
+					for(algM in metaALG){
+						for(meja in hC){
+							## loadanje matrik kompetentnosti
+							setwd(OkoljeKompetentnost)
+							imeKompetentnost <- paste0('kompetentnost[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+							kompetentnost <- readRDS(imeKompetentnost)
+							## sestavljanje napovedi ensembla
+							imena <- paste0(baseLearner, '_', levels(ySosedSet_VALID)[1])
+							napovedBL <- OP_valid[, imena]
+							for(k in kompetThrsh){
+								ensembleNapoved <- napovedEnsemble(napovedBL,
+																	kompetentnost,
+																	k,
+																	bup = 4)
+								setwd(OkoljeNapovedEnsemble)
+								imeNapovedEns <- paste0('napovedEns[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+								saveRDS(ensembleNapoved,imeNapovedEns)
+							}
+						}				
+					}
 				}
 			}
 		}
-	}
-	
-
-	## pravilnost napovedi, shrani v eno matriko (vsi parametri)
-	##############################################
-	imeStolpcev <- c('trainBL' ,'sosedSet', 'metaSet', 'validSet', 'K', 'Kp', 'knnALG', 
-				'metaALG', 'hC', 'kompetThrsh', 'Accuracy', 'Sensitivity', 'Specificity')
-	rezultati <- data.frame(matrix(NA, 0,length(imeStolpcev)))
-	colnames(rezultati) <- imeStolpcev
-	
-	for(nSosedi in K){
-		for(OPnSosedi in Kp){
-			for(alg in knnALG){
-				for(algM in metaALG){
-					for(meja in hC){
-						for(k in kompetThrsh){
-							setwd(OkoljeNapovedEnsemble)
-							imeNapovedEns <- paste0('napovedEns[trainBL]', imenaMnozic[1],'[sosedSet]',
-																imenaMnozic[2], '[metaSet]',imenaMnozic[3],
-																'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
-																'[Kp]',OPnSosedi, '[knnALG]', alg, 
-																'[metaALG]', algM, '[cH]', meja, '.rds')
-							napovedEnsembla <- readRDS(imeNapovedEns)
-							napovedClass <- napovedEnsembla
-							thr <- 0.5
-							napovedClass[napovedEnsembla < thr] <- levels(ySosedSet_VALID)[2]
-							napovedClass[napovedEnsembla >= thr] <- levels(ySosedSet_VALID)[1]
-							napovedClass <- factor(napovedClass)
-							A <- confusionMatrix(table(napovedClass, yValidSet))
-							# print(A)
-					
-							rezultati[nrow(rezultati)+1,] <- c(imenaMnozic[1], imenaMnozic[2], imenaMnozic[3],
-																imenaMnozic[4],	nSosedi, OPnSosedi, alg, algM,
-																meja, k, A[[3]]['Accuracy'], A[[4]]['Sensitivity'],
-																A[[4]]['Specificity'])	
-						}
-					}				
-				}
-			}
-		}
-	}
 		
 
+		## pravilnost napovedi, shrani v eno matriko (vsi parametri)
+		##############################################
+		imeStolpcev <- c('trainBL' ,'sosedSet', 'metaSet', 'validSet', 'K', 'Kp', 'knnALG', 
+					'metaALG', 'hC', 'kompetThrsh', 'Accuracy', 'Sensitivity', 'Specificity')
+		rezultati <- data.frame(matrix(NA, 0,length(imeStolpcev)))
+		colnames(rezultati) <- imeStolpcev
+		
+		for(nSosedi in K){
+			for(OPnSosedi in Kp){
+				for(alg in knnALG){
+					for(algM in metaALG){
+						for(meja in hC){
+							for(k in kompetThrsh){
+								setwd(OkoljeNapovedEnsemble)
+								imeNapovedEns <- paste0('napovedEns[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+								napovedEnsembla <- readRDS(imeNapovedEns)
+								napovedClass <- napovedEnsembla
+								thr <- 0.5
+								napovedClass[napovedEnsembla < thr] <- levels(ySosedSet_VALID)[2]
+								napovedClass[napovedEnsembla >= thr] <- levels(ySosedSet_VALID)[1]
+								napovedClass <- factor(napovedClass)
+								A <- confusionMatrix(table(napovedClass, yValidSet))
+								# print(A)
+						
+								rezultati[nrow(rezultati)+1,] <- c(imenaMnozic[1], imenaMnozic[2], imenaMnozic[3],
+																	imenaMnozic[4],	nSosedi, OPnSosedi, alg, algM,
+																	meja, k, A[[3]]['Accuracy'], A[[4]]['Sensitivity'],
+																	A[[4]]['Specificity'])	
+							}
+						}				
+					}
+				}
+			}
+		}
+			
+
+		
+		setwd(OkoljeAccuracy)
+		ime <- paste0('accuracy[trainBL]', imenaMnozic[1],'[sosedSet]',	imenaMnozic[2],
+						'[metaSet]',imenaMnozic[3], '[validSet]',imenaMnozic[4],'.rds')
+		saveRDS(rezultati, ime)
+	}
 	
-	setwd(OkoljeAccuracy)
-	ime <- paste0('accuracy[trainBL]', imenaMnozic[1],'[sosedSet]',	imenaMnozic[2],
-					'[metaSet]',imenaMnozic[3], '[validSet]',imenaMnozic[4],'.rds')
-	saveRDS(rezultati, ime)
-	
+	if('one' %in% MetaMode){
+		## izracun kompetentnosti klasifikatorja (vsak)
+		##############################################
+		for(nSosedi in K){
+			for(OPnSosedi in Kp){
+				for(alg in knnALG){
+					for(algM in metaALG){
+						for(meja in hC){
+							kompetentnost <- NULL
+							for(bl in baseLearner){
+								## loadanje metaProblema
+								setwd(OkoljeMetaPrblm_VALID)
+								imeMetaProblem <- paste0('matrikaProblem[BL]', bl,'[trainBL]', imenaMnozicVALID[1],
+														'[sosedSet]',imenaMnozicVALID[2], '[metaSet]',imenaMnozicVALID[3],
+														'[K]',nSosedi, '[Kp]', OPnSosedi, '[knnALG]', alg, '.rds')
+								metaFM <- readRDS(imeMetaProblem)$metaFM
+								## loadanje meta klasifikatorja
+								setwd(OkoljeMetaKlasifikator)
+								imeMetaKlasifikator <- paste0('metaKlasifikator[ONE]','[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2],'[metaSet]', imenaMnozic[3], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, '[metaALG]', algM, '[cH]', meja, '.rds')
+								metaKlasifikator <- readRDS(imeMetaKlasifikator)
+								## napovedi meta klasifikatorja
+								napoved <- predict(metaKlasifikator, metaFM, type = 'prob')[2]
+								kompetentnost <- cbind(kompetentnost, as.matrix(napoved))
+							}
+							kompetentnost <- data.frame(kompetentnost)
+							colnames(kompetentnost) <- baseLearner
+							## shranjevanje matrike kompetentnosti
+							setwd(OkoljeKompetentnost)
+							imeKompetentnost <- paste0('kompetentnostONE[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+							saveRDS(kompetentnost, imeKompetentnost)
+						}				
+					}
+				}
+			}
+		}
+		
+
+		
+		## napovedi ensembla
+		##############################################
+
+		for(nSosedi in K){
+			for(OPnSosedi in Kp){
+				for(alg in knnALG){
+					for(algM in metaALG){
+						for(meja in hC){
+							## loadanje matrik kompetentnosti
+							setwd(OkoljeKompetentnost)
+							imeKompetentnost <- paste0('kompetentnostONE[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+							kompetentnost <- readRDS(imeKompetentnost)
+							## sestavljanje napovedi ensembla
+							imena <- paste0(baseLearner, '_', levels(ySosedSet_VALID)[1])
+							napovedBL <- OP_valid[, imena]
+							for(k in kompetThrsh){
+								ensembleNapoved <- napovedEnsemble(napovedBL,
+																	kompetentnost,
+																	k,
+																	bup = 4)
+								setwd(OkoljeNapovedEnsemble)
+								imeNapovedEns <- paste0('napovedEnsONE[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+								saveRDS(ensembleNapoved,imeNapovedEns)
+							}
+						}				
+					}
+				}
+			}
+		}
+		
+
+		## pravilnost napovedi, shrani v eno matriko (vsi parametri)
+		##############################################
+		imeStolpcev <- c('trainBL' ,'sosedSet', 'metaSet', 'validSet', 'K', 'Kp', 'knnALG', 
+					'metaALG', 'hC', 'kompetThrsh', 'Accuracy', 'Sensitivity', 'Specificity')
+		rezultati <- data.frame(matrix(NA, 0,length(imeStolpcev)))
+		colnames(rezultati) <- imeStolpcev
+		
+		for(nSosedi in K){
+			for(OPnSosedi in Kp){
+				for(alg in knnALG){
+					for(algM in metaALG){
+						for(meja in hC){
+							for(k in kompetThrsh){
+								setwd(OkoljeNapovedEnsemble)
+								imeNapovedEns <- paste0('napovedEnsONE[trainBL]', imenaMnozic[1],'[sosedSet]',
+																	imenaMnozic[2], '[metaSet]',imenaMnozic[3],
+																	'[validSet]',imenaMnozic[4], '[K]',nSosedi, 
+																	'[Kp]',OPnSosedi, '[knnALG]', alg, 
+																	'[metaALG]', algM, '[cH]', meja, '.rds')
+								napovedEnsembla <- readRDS(imeNapovedEns)
+								napovedClass <- napovedEnsembla
+								thr <- 0.5
+								napovedClass[napovedEnsembla < thr] <- levels(ySosedSet_VALID)[2]
+								napovedClass[napovedEnsembla >= thr] <- levels(ySosedSet_VALID)[1]
+								napovedClass <- factor(napovedClass)
+								A <- confusionMatrix(table(napovedClass, yValidSet))
+								# print(A)
+						
+								rezultati[nrow(rezultati)+1,] <- c(imenaMnozic[1], imenaMnozic[2], imenaMnozic[3],
+																	imenaMnozic[4],	nSosedi, OPnSosedi, alg, algM,
+																	meja, k, A[[3]]['Accuracy'], A[[4]]['Sensitivity'],
+																	A[[4]]['Specificity'])	
+							}
+						}				
+					}
+				}
+			}
+		}
+			
+
+		
+		setwd(OkoljeAccuracy)
+		ime <- paste0('accuracyONE[trainBL]', imenaMnozic[1],'[sosedSet]',	imenaMnozic[2],
+						'[metaSet]',imenaMnozic[3], '[validSet]',imenaMnozic[4],'.rds')
+		saveRDS(rezultati, ime)
+	}
 	
 }
 						

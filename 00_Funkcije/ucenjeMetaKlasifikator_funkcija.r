@@ -27,7 +27,7 @@ ucenjeMetaKlasifikator <- function(imenaMnozic = c('trainBL','sosedSet', 'metaSe
 			for(OPnSosedi in Kp){
 				for(alg in knnALG){
 					for(bl in baseLearner){
-						print(bl)
+						# print(bl)
 						setwd(OkoljeMetaPrblm)
 						imeMetaProblem <- paste0('matrikaProblem[BL]', bl, '[trainBL]', imenaMnozic[1], '[sosedSet]', 
 												imenaMnozic[2], '[metaSet]', imenaMnozic[3], '[K]',nSosedi, 
