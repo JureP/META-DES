@@ -38,7 +38,7 @@ metaProblemSAVE <- function(imenaMnozic = c('trainBL','sosedSet', 'metaSet'), ##
 	
 	
 	if(!(all(paste0(baseLearner, '_', levels(ySosedSet)) %in% colnames(OP_meta)))){
-		stop(paste('noben base learner med output profili nima imena', baseLearner,'ali pa so classi v ySosedSet in OP_meta razlicni'))
+		stop(paste('noben base learner med output profili nima imena',  baseLearner[!(paste0(baseLearner, '_', levels(ySosedSet)) %in% colnames(OP_meta))],'ali pa so classi v ySosedSet in OP_meta razlicni'))
 	}
 	
 	## preveri ali so imena stolpcev output profilov enaki
