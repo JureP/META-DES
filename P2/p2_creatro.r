@@ -41,8 +41,8 @@ ySosedSet <- factor(class[501:1000])
 metaSet <- FM[1001:1500,]
 yMetaSet <- factor(class[1001:1500])
 
-testSet <- FM[1501:2500,]
-yTestSet <- factor(class[1501:2500])
+testSet <- FM[1501:3500,]
+yTestSet <- factor(class[1501:3500])
 
 setwd(OkoljePodatki)
 	saveRDS(trainBL, 'trainBL.rds')
