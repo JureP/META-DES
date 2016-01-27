@@ -532,6 +532,7 @@ print(ORACLE_LIMIT)
 yTestSet <- as.character(yTestSet)
 yTestSet[yTestSet == 1] <- 'I'
 yTestSet[yTestSet == 2] <- 'II'
+## ifelse(as.character(yTestSet) == 1, 'I', 'II')
 yTestSet <- factor(yTestSet)
 ## pravilnost napovedi base learnerjev
 blAcc <- NULL
