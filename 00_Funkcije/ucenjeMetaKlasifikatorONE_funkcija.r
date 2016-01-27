@@ -54,7 +54,7 @@ ucenjeMetaKlasifikatorONE <- function(imenaMnozic = c('trainBL','sosedSet', 'met
 							response <- c(as.character(response), as.character(metaPodatki$metaClass[izborR]))
 						}
 						if(nrow(FM) < 50){
-							print(paste('Samo', nrwo(FM), 'primerov iz metaSet-a ima dovolj razlicne napovedi (hC)!!!'))
+							print(paste('Samo', nrow(FM), 'primerov iz metaSet-a ima dovolj razlicne napovedi (hC)!!!'))
 						}
 						if(nrow(FM) < 2){
 							stop('noben primer ne preseze praga razlicnosti napovedi hC!!')
