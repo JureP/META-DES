@@ -6,7 +6,7 @@ setwd('C:/Users/Podlogar/Documents/DynamicEnsembleSelection/Podatki/Podatki')
 podatki <- readRDS('razdelitevPodatkovIzbrani_list.rds')
 izbrani <- colnames(podatki$xTest)
 
-podatki <- read.csv('modelLibrary.csv')
+# podatki <- read.csv('modelLibrary.csv')
 
 
 setwd('C:/Users/Podlogar/Documents/DynamicEnsembleSelection/Podatki/Podatki_loceni')
