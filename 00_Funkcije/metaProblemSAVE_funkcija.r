@@ -101,6 +101,9 @@ metaProblemSAVE <- function(imenaMnozic = c('trainBL','sosedSet', 'metaSet'), ##
 					## ce se ni shranjen se izracuna metaFM
 						metaFM <- NULL
 						for(i in 1:nrow(metaSet)){
+							if(i %% 1000 == 0){
+								print(paste0(100*i/nrow(metaSet), '% matrike sestavljene'))
+							}
 							## region of competence
 							sosediRC <- matrika_sosediRC[i,]
 							## sosedi po output profilu
